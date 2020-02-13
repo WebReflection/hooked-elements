@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>hookedElements</title>
+  <script src="../index.js"></script>
+  <script>
+
+  // via callback
+  (({define, useEffect, useState}) => {
+    define('button.counter1', element => {
+      useEffect(() => {
+        console.log('FX counter1 on');
+        return () => console.log('FX counter1 off');
+      });
+      const [counter, update] = useState(0);
+      element.onclick = () => update(counter + 1);
+      element.textContent = `${counter} clicks`;
+    });
+  })(hookedElements);
+
+  // via literal
+  (({define, render, useEffect, useState}) => {
+    define('button.counter2', {
+      init() { render(this); },
+      disconnected() { console.log('disconnected'); },
+      render() {
+        useEffect(() => {
+          console.log('FX counter2 on');
+          return () => console.log('FX counter2 off');
+        });
+        const [counter, update] = useState(0);
+        const {element} = this;
+        element.onclick = () => update(counter + 1);
+        element.textContent = `${counter} clicks`;
+      }
+    });
+  })(hookedElements);
+
+</script>
+</head>
+<body>
+  <button class="counter1"></button>
+  <button class="counter2"></button>
+</body>
+</html>
