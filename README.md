@@ -75,17 +75,17 @@ define('button.counter', {
 
   Sure thing! Following a <a href="https://github.com/WebReflection/lighterhtml#readme">lighterhtml</a> integration example, also <a href="https://codepen.io/WebReflection/pen/qBdOzWj?editors=0010">live in CodePen</a>:
 
-**[Live Demo](https://codepen.io/WebReflection/pen/eYNJzeg)**
+**[Live Demo](https://codepen.io/WebReflection/pen/poJyjGy)**
 
 ```js
 import {render, html, svg} from 'lighterhtml';
+import {define, useState} from 'hooked-elements';
 
+// as mixin
 const LighterHTML = {
   html() { return render(this.element, html.apply(null, arguments)); },
   svg() { return render(this.element, svg.apply(null, arguments)); }
 };
-
-import {define, useState} from 'hooked-elements';
 
 define('button.counter', {
   ...LighterHTML,
@@ -94,6 +94,16 @@ define('button.counter', {
     element.onclick = () => update(count + 1);
     this.html`Hello 👋 <strong>${count}</strong> times!`;
   }
+});
+
+// or straight forward via callback and explicit render
+define('my-counter', element => {
+  const [count, update] = useState(0);
+  render(element, html`
+    <button class="large btn" onclick=${() => update(count - 1)}>-</button>
+    <span class="large value">${count}</span>
+    <button class="large btn" onclick=${() => update(count + 1)}>+</button>
+  `);
 });
 ```
   </div>
