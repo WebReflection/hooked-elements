@@ -37,7 +37,7 @@
   "unpkg": "min.js",
   "dependencies": {
     "augmentor": "^2.1.5",
-    "wicked-elements": "^2.0.1"
+    "wicked-elements": "^2.0.2"
   },
   "repository": {
     "type": "git",
