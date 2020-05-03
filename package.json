@@ -2,7 +2,7 @@
   "name": "hooked-elements",
   "version": "1.0.1",
   "description": "wickedElements 🧙 with render hooks",
-  "main": "cjs/index.js",
+  "main": "./cjs/index.js",
   "scripts": {
     "build": "npm run cjs && npm run rollup:new && npm run rollup:babel && npm run min && npm run size && npm run test",
     "cjs": "ascjs esm cjs",
@@ -21,23 +21,23 @@
   "author": "Andrea Giammarchi",
   "license": "ISC",
   "devDependencies": {
-    "@babel/core": "^7.8.7",
-    "@babel/preset-env": "^7.8.7",
-    "@ungap/degap": "^0.1.7",
-    "ascjs": "^3.1.2",
-    "http-server": "^0.12.1",
-    "rollup": "^2.0.0",
-    "rollup-plugin-babel": "^4.3.3",
+    "@babel/core": "^7.9.6",
+    "@babel/preset-env": "^7.9.6",
+    "@ungap/degap": "^0.2.0",
+    "ascjs": "^4.0.0",
+    "http-server": "^0.12.3",
+    "rollup": "^2.7.6",
+    "rollup-plugin-babel": "^4.4.0",
     "rollup-plugin-includepaths": "^0.2.3",
     "rollup-plugin-node-resolve": "^5.2.0",
-    "rollup-plugin-terser": "^5.2.0",
-    "uglify-js": "^3.8.0"
+    "rollup-plugin-terser": "^5.3.0",
+    "uglify-js": "^3.9.2"
   },
-  "module": "esm/index.js",
+  "module": "./esm/index.js",
   "unpkg": "min.js",
   "dependencies": {
-    "augmentor": "^2.1.5",
-    "wicked-elements": "^2.0.2"
+    "augmentor": "^2.2.0",
+    "wicked-elements": "^2.1.0"
   },
   "repository": {
     "type": "git",
@@ -46,5 +46,10 @@
   "bugs": {
     "url": "https://github.com/WebReflection/hooked-elements/issues"
   },
-  "homepage": "https://github.com/WebReflection/hooked-elements#readme"
+  "homepage": "https://github.com/WebReflection/hooked-elements#readme",
+  "type": "module",
+  "exports": {
+    "import": "./esm/index.js",
+    "default": "./cjs/index.js"
+  }
 }
