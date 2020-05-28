@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>wicked counter</title>
+  <script type="module">
+  import {define, useMemo, useState} from '//unpkg.com/hooked-elements?module';
+
+  define('div.counter', element => {
+    const [dec, count, inc] = useMemo(
+      () => element.querySelectorAll('button, span'),
+      [element]
+    );
+    const [i, update] = useState(parseInt(count.textContent, 10));
+    dec.onclick = () => update(i - 1);
+    inc.onclick = () => update(i + 1);
+    count.textContent = i;
+  });
+  </script>
+  <style>
+    div.counter {
+      font-size: 200%;
+    }
+    div.counter span {
+      width: 4rem;
+      display: inline-block;
+      text-align: center;
+    }
+    div.counter button {
+      width: 64px;
+      height: 64px;
+      border: none;
+      border-radius: 10px;
+      background-color: seagreen;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="counter">
+    <button>-</button>
+    <span>0</span>
+    <button>+</button>
+  </div>
+</body>
+</html>
