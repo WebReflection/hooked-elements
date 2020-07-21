@@ -480,7 +480,6 @@ var hookedElements = (function (exports) {
     if (!lazy.has(selector)) (defined.get(selector) || waitDefined(selector)).resolve();
   };
   var defineAsync = function defineAsync(selector, callback, _) {
-    var i = selectors.length;
     lazy.add(selector);
     define(selector, {
       init: function init() {
@@ -488,6 +487,7 @@ var hookedElements = (function (exports) {
           lazy["delete"](selector);
           callback().then(function (_ref) {
             var definition = _ref["default"];
+            var i = selectors.indexOf(selector);
             selectors.splice(i, 1);
             components.splice(i, 1);
 
