@@ -1,5 +1,5 @@
 import {augmentor, dropEffect, hasEffect} from 'augmentor';
-import {define as $define} from 'wicked-elements';
+import {define as $define, defineAsync as $async} from 'wicked-elements';
 
 // default init with auto-augmented and invoked render
 function init() { render(this); }
@@ -10,6 +10,10 @@ export const define = (selector, definition) => $define(
     {init, render: definition} :
     ((definition.init || (definition.init = init)), definition)
 );
+
+export const defineAsync = (selector, callback) => {
+  $async(selector, callback, define);
+};
 
 export const render = wicked => {
   const {disconnected, element, render} = wicked;

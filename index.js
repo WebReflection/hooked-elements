@@ -351,6 +351,7 @@ var hookedElements = (function (exports) {
   var uid = '_' + Math.random();
   var connected = 'connected';
   var disconnected = 'dis' + connected;
+  var lazy = new Set();
   var selectors = [];
   var components = [];
   var empty = [];
@@ -476,7 +477,25 @@ var hookedElements = (function (exports) {
       wm: new WeakMap()
     });
     upgrade(document.documentElement);
-    (defined.get(selector) || waitDefined(selector)).resolve();
+    if (!lazy.has(selector)) (defined.get(selector) || waitDefined(selector)).resolve();
+  };
+  var defineAsync = function defineAsync(selector, callback, _) {
+    var i = selectors.length;
+    lazy.add(selector);
+    define(selector, {
+      init: function init() {
+        if (lazy.has(selector)) {
+          lazy["delete"](selector);
+          callback().then(function (_ref) {
+            var definition = _ref["default"];
+            selectors.splice(i, 1);
+            components.splice(i, 1);
+
+            (_ || define)(selector, definition);
+          });
+        }
+      }
+    });
   };
   var get = function get(selector) {
     var i = selectors.indexOf(selector);
@@ -557,6 +576,9 @@ var hookedElements = (function (exports) {
       render: definition
     } : (definition.init || (definition.init = init$1), definition));
   };
+  var defineAsync$1 = function defineAsync$1(selector, callback) {
+    defineAsync(selector, callback, define$1);
+  };
   var render = function render(wicked) {
     var disconnected = wicked.disconnected,
         element = wicked.element,
@@ -573,6 +595,7 @@ var hookedElements = (function (exports) {
 
   exports.createContext = createContext;
   exports.define = define$1;
+  exports.defineAsync = defineAsync$1;
   exports.get = get;
   exports.render = render;
   exports.upgrade = upgrade;

@@ -1,6 +1,6 @@
 'use strict';
 const {augmentor, dropEffect, hasEffect} = require('augmentor');
-const {define: $define} = require('wicked-elements');
+const {define: $define, defineAsync: $async} = require('wicked-elements');
 
 // default init with auto-augmented and invoked render
 function init() { render(this); }
@@ -12,6 +12,11 @@ const define = (selector, definition) => $define(
     ((definition.init || (definition.init = init)), definition)
 );
 exports.define = define;
+
+const defineAsync = (selector, callback) => {
+  $async(selector, callback, define);
+};
+exports.defineAsync = defineAsync;
 
 const render = wicked => {
   const {disconnected, element, render} = wicked;
