@@ -4,12 +4,14 @@ import {define as $define, defineAsync as $async} from 'wicked-elements';
 // default init with auto-augmented and invoked render
 function init() { render(this); }
 
-export const define = (selector, definition) => $define(
-  selector,
-  typeof definition === 'function' ?
-    {init, render: definition} :
-    ((definition.init || (definition.init = init)), definition)
-);
+export const define = (selector, definition) => {
+  $define(
+    selector,
+    typeof definition === 'function' ?
+      {init, render: definition} :
+      ((definition.init || (definition.init = init)), definition)
+  );
+};
 
 export const defineAsync = (selector, callback) => {
   $async(selector, callback, define);

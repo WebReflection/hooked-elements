@@ -26,7 +26,7 @@
     "@ungap/degap": "^0.2.0",
     "ascjs": "^4.0.1",
     "http-server": "^0.12.3",
-    "rollup": "^2.22.1",
+    "rollup": "^2.23.0",
     "rollup-plugin-babel": "^4.4.0",
     "rollup-plugin-includepaths": "^0.2.3",
     "rollup-plugin-node-resolve": "^5.2.0",
@@ -37,7 +37,7 @@
   "unpkg": "min.js",
   "dependencies": {
     "augmentor": "^2.2.0",
-    "wicked-elements": "^2.2.2"
+    "wicked-elements": "^3.0.19"
   },
   "repository": {
     "type": "git",
