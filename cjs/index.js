@@ -5,12 +5,14 @@ const {define: $define, defineAsync: $async} = require('wicked-elements');
 // default init with auto-augmented and invoked render
 function init() { render(this); }
 
-const define = (selector, definition) => $define(
-  selector,
-  typeof definition === 'function' ?
-    {init, render: definition} :
-    ((definition.init || (definition.init = init)), definition)
-);
+const define = (selector, definition) => {
+  $define(
+    selector,
+    typeof definition === 'function' ?
+      {init, render: definition} :
+      ((definition.init || (definition.init = init)), definition)
+  );
+};
 exports.define = define;
 
 const defineAsync = (selector, callback) => {
