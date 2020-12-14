@@ -2,6 +2,11 @@
 
 <sup>**Social Media Photo by [chuttersnap](https://unsplash.com/@chuttersnap) on [Unsplash](https://unsplash.com/)**</sup>
 
+### 📣 Community Announcement
+
+Please ask questions in the [dedicated forum](https://webreflection.boards.net/) to help the community around this project grow ♥
+
+---
 
 This module integrates [augmentor](https://github.com/WebReflection/augmentor#readme) in [wickedElements](https://github.com/WebReflection/wicked-elements#readme) for a ~2.4K all-inclusive package and zero polyfills needed whatsoever.
 
