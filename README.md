@@ -8,7 +8,7 @@ Please ask questions in the [dedicated forum](https://webreflection.boards.net/)
 
 ---
 
-This module integrates [augmentor](https://github.com/WebReflection/augmentor#readme) in [wickedElements](https://github.com/WebReflection/wicked-elements#readme) for a ~2.4K all-inclusive package and zero polyfills needed whatsoever.
+This module integrates [µhooks](https://github.com/WebReflection/uhooks#readme) in [wickedElements](https://github.com/WebReflection/wicked-elements#readme) for a *~2K* all-inclusive package and zero polyfills needed whatsoever.
 
 The compatibility is the same as _wickedElements_, meaning IE11+ and other Desktop/Mobile browsers.
 
@@ -30,7 +30,7 @@ The callback is used as `render` method and automatically augmented and invoked 
 
 ### In A Nutshell
 
-All [augmentor hooks](https://github.com/WebReflection/augmentor#available-hooks) are available, and `useEffect` is granted to run *before* `disconnected`, if it returns a callback to drop the effect.
+All [hooks](https://github.com/WebReflection/augmentor#available-hooks) are available, and `useEffect` is granted to run *before* `disconnected`, if it returns a callback to drop the effect.
 
 **[Live Demo](https://codepen.io/WebReflection/pen/mdJVERz)**
 
@@ -78,22 +78,22 @@ define('button.counter', {
   </summary>
   <div>
 
-  Sure thing! Following a <a href="https://github.com/WebReflection/lighterhtml#readme">lighterhtml</a> integration example, also <a href="https://codepen.io/WebReflection/pen/qBdOzWj?editors=0010">live in CodePen</a>:
+  Sure thing! Following a <a href="https://github.com/WebReflection/uhtml#readme">µhtml</a> integration example, also <a href="https://codepen.io/WebReflection/pen/qBdOzWj?editors=0010">live in CodePen</a>:
 
 **[Live Demo](https://codepen.io/WebReflection/pen/poJyjGy)**
 
 ```js
-import {render, html, svg} from 'lighterhtml';
+import {render, html, svg} from 'uhtml';
 import {define, useState} from 'hooked-elements';
 
 // as mixin
-const LighterHTML = {
+const MicroHTML = {
   html() { return render(this.element, html.apply(null, arguments)); },
   svg() { return render(this.element, svg.apply(null, arguments)); }
 };
 
 define('button.counter', {
-  ...LighterHTML,
+  ...MicroHTML,
   render(element) {
     const [count, update] = useState(1);
     element.onclick = () => update(count + 1);
