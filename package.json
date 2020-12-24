@@ -36,7 +36,7 @@
   "module": "./esm/index.js",
   "unpkg": "min.js",
   "dependencies": {
-    "augmentor": "^2.2.0",
+    "uhooks": "^0.1.19",
     "wicked-elements": "^3.1.1"
   },
   "repository": {

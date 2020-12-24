@@ -1,5 +1,5 @@
 'use strict';
-const {augmentor, dropEffect, hasEffect} = require('augmentor');
+const {hooked, dropEffect, hasEffect} = require('uhooks');
 const {define: $define, defineAsync: $async} = require('wicked-elements');
 
 // default init with auto-augmented and invoked render
@@ -22,7 +22,7 @@ exports.defineAsync = defineAsync;
 
 const render = wicked => {
   const {disconnected, element, render} = wicked;
-  const hook = augmentor(render.bind(wicked, element));
+  const hook = hooked(render.bind(wicked, element));
   wicked.disconnected = () => {
     if (hasEffect(hook))
       dropEffect(hook);
@@ -43,7 +43,7 @@ exports.render = render;
   exports.useCallback = m.useCallback;
   exports.useMemo = m.useMemo;
   exports.useRef = m.useRef;
-})(require('augmentor'));
+})(require('uhooks'));
 
 (m => {
   exports.get = m.get;
