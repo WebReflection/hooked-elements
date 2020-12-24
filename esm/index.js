@@ -1,4 +1,4 @@
-import {augmentor, dropEffect, hasEffect} from 'augmentor';
+import {hooked, dropEffect, hasEffect} from 'uhooks';
 import {define as $define, defineAsync as $async} from 'wicked-elements';
 
 // default init with auto-augmented and invoked render
@@ -19,7 +19,7 @@ export const defineAsync = (selector, callback) => {
 
 export const render = wicked => {
   const {disconnected, element, render} = wicked;
-  const hook = augmentor(render.bind(wicked, element));
+  const hook = hooked(render.bind(wicked, element));
   wicked.disconnected = () => {
     if (hasEffect(hook))
       dropEffect(hook);
@@ -37,7 +37,7 @@ export {
   useCallback,
   useMemo,
   useRef
-} from 'augmentor';
+} from 'uhooks';
 
 export {
   get,

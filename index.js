@@ -1,296 +1,12 @@
 var hookedElements = (function (exports) {
   'use strict';
 
-  var compat = typeof cancelAnimationFrame === 'function';
-  var cAF = compat ? cancelAnimationFrame : clearTimeout;
-  var rAF = compat ? requestAnimationFrame : setTimeout;
-  function reraf(limit) {
-    var force, timer, callback, self, args;
-    reset();
-    return function reschedule(_callback, _self, _args) {
-      callback = _callback;
-      self = _self;
-      args = _args;
-      if (!timer) timer = rAF(invoke);
-      if (--force < 0) stop(true);
-      return stop;
-    };
-
-    function invoke() {
-      reset();
-      callback.apply(self, args || []);
-    }
-
-    function reset() {
-      force = limit || Infinity;
-      timer = compat ? 0 : null;
-    }
-
-    function stop(flush) {
-      var didStop = !!timer;
-
-      if (didStop) {
-        cAF(timer);
-        if (flush) invoke();
-      }
-
-      return didStop;
-    }
-  }
-
-  var umap = (function (_) {
-    return {
-      // About: get: _.get.bind(_)
-      // It looks like WebKit/Safari didn't optimize bind at all,
-      // so that using bind slows it down by 60%.
-      // Firefox and Chrome are just fine in both cases,
-      // so let's use the approach that works fast everywhere 👍
-      get: function get(key) {
-        return _.get(key);
-      },
-      set: function set(key, value) {
-        return _.set(key, value), value;
-      }
-    };
-  });
-
-  /*! (c) Andrea Giammarchi - ISC */
-  var state = null; // main exports
-
-  var augmentor = function augmentor(fn) {
-    var stack = [];
-    return function hook() {
-      var prev = state;
-      var after = [];
-      state = {
-        hook: hook,
-        args: arguments,
-        stack: stack,
-        i: 0,
-        length: stack.length,
-        after: after
-      };
-
-      try {
-        return fn.apply(null, arguments);
-      } finally {
-        state = prev;
-
-        for (var i = 0, length = after.length; i < length; i++) {
-          after[i]();
-        }
-      }
-    };
-  };
-
-  var updates = umap(new WeakMap());
-
-  var hookdate = function hookdate(hook, ctx, args) {
-    hook.apply(ctx, args);
-  };
-
-  var defaults = {
-    async: false,
-    always: false
-  };
-
-  var getValue = function getValue(value, f) {
-    return typeof f == 'function' ? f(value) : f;
-  };
-
-  var useReducer = function useReducer(reducer, value, init, options) {
-    var i = state.i++;
-    var _state = state,
-        hook = _state.hook,
-        args = _state.args,
-        stack = _state.stack,
-        length = _state.length;
-    if (i === length) state.length = stack.push({});
-    var ref = stack[i];
-    ref.args = args;
-
-    if (i === length) {
-      var fn = typeof init === 'function';
-
-      var _ref = (fn ? options : init) || options || defaults,
-          asy = _ref.async,
-          always = _ref.always;
-
-      ref.$ = fn ? init(value) : getValue(void 0, value);
-      ref._ = asy ? updates.get(hook) || updates.set(hook, reraf()) : hookdate;
-
-      ref.f = function (value) {
-        var $value = reducer(ref.$, value);
-
-        if (always || ref.$ !== $value) {
-          ref.$ = $value;
-
-          ref._(hook, null, ref.args);
-        }
-      };
-    }
-
-    return [ref.$, ref.f];
-  }; // useState
-
-  var useState = function useState(value, options) {
-    return useReducer(getValue, value, void 0, options);
-  }; // useContext
-
-  var hooks = new WeakMap();
-
-  var invoke = function invoke(_ref2) {
-    var hook = _ref2.hook,
-        args = _ref2.args;
-    hook.apply(null, args);
-  };
-
-  var createContext = function createContext(value) {
-    var context = {
-      value: value,
-      provide: provide
-    };
-    hooks.set(context, []);
-    return context;
-  };
-  var useContext = function useContext(context) {
-    var _state2 = state,
-        hook = _state2.hook,
-        args = _state2.args;
-    var stack = hooks.get(context);
-    var info = {
-      hook: hook,
-      args: args
-    };
-    if (!stack.some(update, info)) stack.push(info);
-    return context.value;
-  };
-
-  function provide(value) {
-    if (this.value !== value) {
-      this.value = value;
-      hooks.get(this).forEach(invoke);
-    }
-  }
-
-  function update(_ref3) {
-    var hook = _ref3.hook;
-    return hook === this.hook;
-  } // dropEffect, hasEffect, useEffect, useLayoutEffect
-
-
-  var effects = new WeakMap();
-  var fx = umap(effects);
-
-  var stop = function stop() {};
-
-  var createEffect = function createEffect(asy) {
-    return function (effect, guards) {
-      var i = state.i++;
-      var _state3 = state,
-          hook = _state3.hook,
-          after = _state3.after,
-          stack = _state3.stack,
-          length = _state3.length;
-
-      if (i < length) {
-        var info = stack[i];
-        var _update = info.update,
-            values = info.values,
-            _stop = info.stop;
-
-        if (!guards || guards.some(different, values)) {
-          info.values = guards;
-          if (asy) _stop(asy);
-          var clean = info.clean;
-
-          if (clean) {
-            info.clean = null;
-            clean();
-          }
-
-          var _invoke = function _invoke() {
-            info.clean = effect();
-          };
-
-          if (asy) _update(_invoke);else after.push(_invoke);
-        }
-      } else {
-        var _update2 = asy ? reraf() : stop;
-
-        var _info = {
-          clean: null,
-          update: _update2,
-          values: guards,
-          stop: stop
-        };
-        state.length = stack.push(_info);
-        (fx.get(hook) || fx.set(hook, [])).push(_info);
-
-        var _invoke2 = function _invoke2() {
-          _info.clean = effect();
-        };
-
-        if (asy) _info.stop = _update2(_invoke2);else after.push(_invoke2);
-      }
-    };
-  };
-
-  var dropEffect = function dropEffect(hook) {
-    (effects.get(hook) || []).forEach(function (info) {
-      var clean = info.clean,
-          stop = info.stop;
-      stop();
-
-      if (clean) {
-        info.clean = null;
-        clean();
-      }
-    });
-  };
-  var hasEffect = effects.has.bind(effects);
-  var useEffect = createEffect(true);
-  var useLayoutEffect = createEffect(false); // useMemo, useCallback
-
-  var useMemo = function useMemo(memo, guards) {
-    var i = state.i++;
-    var _state4 = state,
-        stack = _state4.stack,
-        length = _state4.length;
-    if (i === length) state.length = stack.push({
-      $: memo(),
-      _: guards
-    });else if (!guards || guards.some(different, stack[i]._)) stack[i] = {
-      $: memo(),
-      _: guards
-    };
-    return stack[i].$;
-  };
-  var useCallback = function useCallback(fn, guards) {
-    return useMemo(function () {
-      return fn;
-    }, guards);
-  }; // useRef
-
-  var useRef = function useRef(value) {
-    var i = state.i++;
-    var _state5 = state,
-        stack = _state5.stack,
-        length = _state5.length;
-    if (i === length) state.length = stack.push({
-      current: value
-    });
-    return stack[i];
-  };
-
-  function different(value, i) {
-    return value !== this[i];
-  }
-
   var Lie = typeof Promise === 'function' ? Promise : function (fn) {
     var queue = [],
-        resolved = 0;
-    fn(function () {
+        resolved = 0,
+        value;
+    fn(function ($) {
+      value = $;
       resolved = 1;
       queue.splice(0).forEach(then);
     });
@@ -299,9 +15,237 @@ var hookedElements = (function (exports) {
     };
 
     function then(fn) {
-      return resolved ? setTimeout(fn) : queue.push(fn), this;
+      return resolved ? setTimeout(fn, 0, value) : queue.push(fn), this;
     }
   };
+
+  var h = null,
+      schedule = new Set();
+  var hooks = new WeakMap();
+
+  var invoke = function invoke(effect) {
+    var $ = effect.$,
+        r = effect.r,
+        h = effect.h;
+
+    if (isFunction(r)) {
+      fx.get(h)["delete"](effect);
+      r();
+    }
+
+    if (isFunction(effect.r = $())) fx.get(h).add(effect);
+  };
+
+  var runSchedule = function runSchedule() {
+    var previous = schedule;
+    schedule = new Set();
+    previous.forEach(function (_ref) {
+      var h = _ref.h,
+          c = _ref.c,
+          a = _ref.a,
+          e = _ref.e;
+      // avoid running schedules when the hook is
+      // re-executed before such schedule happens
+      if (e) h.apply(c, a);
+    });
+  };
+
+  var fx = new WeakMap();
+  var effects = [];
+  var layoutEffects = [];
+  function different(value, i) {
+    return value !== this[i];
+  }
+  var dropEffect = function dropEffect(hook) {
+    var effects = fx.get(hook);
+    if (effects) wait.then(function () {
+      effects.forEach(function (effect) {
+        effect.r();
+        effect.r = null;
+      });
+      effects.clear();
+    });
+  };
+  var getInfo = function getInfo() {
+    return hooks.get(h);
+  };
+  var hasEffect = function hasEffect(hook) {
+    return fx.has(hook);
+  };
+  var isFunction = function isFunction(f) {
+    return typeof f === 'function';
+  };
+  var hooked = function hooked(callback) {
+    var info = {
+      h: hook,
+      c: null,
+      a: null,
+      e: 0,
+      i: 0,
+      s: []
+    };
+    hooks.set(hook, info);
+    return hook;
+
+    function hook() {
+      var p = h;
+      h = hook;
+      info.e = info.i = 0;
+
+      try {
+        return callback.apply(info.c = this, info.a = arguments);
+      } finally {
+        h = p;
+        if (effects.length) wait.then(effects.forEach.bind(effects.splice(0), invoke));
+        if (layoutEffects.length) layoutEffects.splice(0).forEach(invoke);
+      }
+    }
+  };
+  var reschedule = function reschedule(info) {
+    if (!schedule.has(info)) {
+      info.e = 1;
+      schedule.add(info);
+      wait.then(runSchedule);
+    }
+  };
+  var wait = new Lie(function ($) {
+    return $();
+  });
+
+  var createContext = function createContext(value) {
+    return {
+      _: new Set(),
+      provide: provide,
+      value: value
+    };
+  };
+  var useContext = function useContext(_ref) {
+    var _ = _ref._,
+        value = _ref.value;
+
+    _.add(getInfo());
+
+    return value;
+  };
+
+  function provide(newValue) {
+    var _ = this._,
+        value = this.value;
+
+    if (value !== newValue) {
+      this._ = new Set();
+      this.value = newValue;
+
+      _.forEach(function (_ref2) {
+        var h = _ref2.h,
+            c = _ref2.c,
+            a = _ref2.a;
+        h.apply(c, a);
+      });
+    }
+  }
+
+  var useCallback = function useCallback(fn, guards) {
+    return useMemo(function () {
+      return fn;
+    }, guards);
+  };
+  var useMemo = function useMemo(memo, guards) {
+    var info = getInfo();
+    var i = info.i,
+        s = info.s;
+    if (i === s.length || !guards || guards.some(different, s[i]._)) s[i] = {
+      $: memo(),
+      _: guards
+    };
+    return s[info.i++].$;
+  };
+
+  var createEffect = function createEffect(stack) {
+    return function (callback, guards) {
+      var info = getInfo();
+      var i = info.i,
+          s = info.s,
+          h = info.h;
+      var call = i === s.length;
+      info.i++;
+
+      if (call) {
+        if (!fx.has(h)) fx.set(h, new Set());
+        s[i] = {
+          $: callback,
+          _: guards,
+          r: null,
+          h: h
+        };
+      }
+
+      if (call || !guards || guards.some(different, s[i]._)) stack.push(s[i]);
+      s[i].$ = callback;
+      s[i]._ = guards;
+    };
+  };
+
+  var useEffect = createEffect(effects);
+  var useLayoutEffect = createEffect(layoutEffects);
+
+  var getValue = function getValue(value, f) {
+    return isFunction(f) ? f(value) : f;
+  };
+
+  var useReducer = function useReducer(reducer, value, init) {
+    var info = getInfo();
+    var i = info.i,
+        s = info.s;
+    if (i === s.length) s.push({
+      $: isFunction(init) ? init(value) : getValue(void 0, value),
+      set: function set(value) {
+        s[i].$ = reducer(s[i].$, value);
+        reschedule(info);
+      }
+    });
+    var _s$info$i = s[info.i++],
+        $ = _s$info$i.$,
+        set = _s$info$i.set;
+    return [$, set];
+  };
+  var useState = function useState(value) {
+    return useReducer(getValue, value);
+  };
+
+  var useRef = function useRef(current) {
+    var info = getInfo();
+    var i = info.i,
+        s = info.s;
+    if (i === s.length) s.push({
+      current: current
+    });
+    return s[info.i++];
+  };
+
+  var Lie$1 = typeof Promise === 'function' ? Promise : function (fn) {
+    var queue = [],
+        resolved = 0,
+        value;
+    fn(function ($) {
+      value = $;
+      resolved = 1;
+      queue.splice(0).forEach(then);
+    });
+    return {
+      then: then
+    };
+
+    function then(fn) {
+      return resolved ? setTimeout(fn, 0, value) : queue.push(fn), this;
+    }
+  };
+
+  var _self = self,
+      document$1 = _self.document,
+      MutationObserver$1 = _self.MutationObserver,
+      Set$1 = _self.Set,
+      WeakMap$1 = _self.WeakMap;
 
   var elements = function elements(element) {
     return 'querySelectorAll' in element;
@@ -309,7 +253,7 @@ var hookedElements = (function (exports) {
 
   var filter = [].filter;
   var QSAO = (function (options) {
-    var live = new WeakMap();
+    var live = new WeakMap$1();
 
     var callback = function callback(records) {
       var query = options.query;
@@ -333,7 +277,7 @@ var hookedElements = (function (exports) {
     };
 
     var loop = function loop(elements, connected, query) {
-      var set = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : new Set();
+      var set = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : new Set$1();
 
       var _loop = function _loop(_selectors, _element, i, length) {
         // guard against repeated elements within nested querySelectorAll results
@@ -343,7 +287,7 @@ var hookedElements = (function (exports) {
           if (connected) {
             for (var q, m = matches(_element), _i = 0, _length = query.length; _i < _length; _i++) {
               if (m.call(_element, q = query[_i])) {
-                if (!live.has(_element)) live.set(_element, new Set());
+                if (!live.has(_element)) live.set(_element, new Set$1());
                 _selectors = live.get(_element); // guard against selectors that were handled already
 
                 if (!_selectors.has(q)) {
@@ -363,7 +307,7 @@ var hookedElements = (function (exports) {
               });
             }
 
-          loop(_element.querySelectorAll(query), connected, query, set);
+          loop(querySelectorAll(_element), connected, query, set);
         }
 
         selectors = _selectors;
@@ -384,14 +328,18 @@ var hookedElements = (function (exports) {
       loop(elements, connected, options.query);
     };
 
-    var observer = new MutationObserver(callback);
-    var root = options.root || document;
+    var querySelectorAll = function querySelectorAll(root) {
+      return query.length ? root.querySelectorAll(query) : query;
+    };
+
+    var observer = new MutationObserver$1(callback);
+    var root = options.root || document$1;
     var query = options.query;
     observer.observe(root, {
       childList: true,
       subtree: true
     });
-    if (query.length) parse(root.querySelectorAll(query));
+    parse(querySelectorAll(root));
     return {
       drop: drop,
       flush: flush,
@@ -542,7 +490,7 @@ var hookedElements = (function (exports) {
   var whenDefined = function whenDefined(selector) {
     if (!(selector in defined)) {
       var _,
-          $ = new Lie(function ($) {
+          $ = new Lie$1(function ($) {
         _ = $;
       });
 
@@ -572,7 +520,7 @@ var hookedElements = (function (exports) {
     var disconnected = wicked.disconnected,
         element = wicked.element,
         render = wicked.render;
-    var hook = augmentor(render.bind(wicked, element));
+    var hook = hooked(render.bind(wicked, element));
 
     wicked.disconnected = function () {
       if (hasEffect(hook)) dropEffect(hook);
