@@ -19,9 +19,8 @@ var hookedElements = (function (exports) {
     }
   };
 
-  var h = null,
+  var info = null,
       schedule = new Set();
-  var hooks = new WeakMap();
 
   var invoke = function invoke(effect) {
     var $ = effect.$,
@@ -67,7 +66,7 @@ var hookedElements = (function (exports) {
     });
   };
   var getInfo = function getInfo() {
-    return hooks.get(h);
+    return info;
   };
   var hasEffect = function hasEffect(hook) {
     return fx.has(hook);
@@ -76,7 +75,7 @@ var hookedElements = (function (exports) {
     return typeof f === 'function';
   };
   var hooked = function hooked(callback) {
-    var info = {
+    var current = {
       h: hook,
       c: null,
       a: null,
@@ -84,18 +83,17 @@ var hookedElements = (function (exports) {
       i: 0,
       s: []
     };
-    hooks.set(hook, info);
     return hook;
 
     function hook() {
-      var p = h;
-      h = hook;
-      info.e = info.i = 0;
+      var prev = info;
+      info = current;
+      current.e = current.i = 0;
 
       try {
-        return callback.apply(info.c = this, info.a = arguments);
+        return callback.apply(current.c = this, current.a = arguments);
       } finally {
-        h = p;
+        info = prev;
         if (effects.length) wait.then(effects.forEach.bind(effects.splice(0), invoke));
         if (layoutEffects.length) layoutEffects.splice(0).forEach(invoke);
       }
@@ -221,24 +219,6 @@ var hookedElements = (function (exports) {
       current: current
     });
     return s[info.i++];
-  };
-
-  var Lie$1 = typeof Promise === 'function' ? Promise : function (fn) {
-    var queue = [],
-        resolved = 0,
-        value;
-    fn(function ($) {
-      value = $;
-      resolved = 1;
-      queue.splice(0).forEach(then);
-    });
-    return {
-      then: then
-    };
-
-    function then(fn) {
-      return resolved ? setTimeout(fn, 0, value) : queue.push(fn), this;
-    }
   };
 
   var _self = self,
@@ -490,7 +470,7 @@ var hookedElements = (function (exports) {
   var whenDefined = function whenDefined(selector) {
     if (!(selector in defined)) {
       var _,
-          $ = new Lie$1(function ($) {
+          $ = new Lie(function ($) {
         _ = $;
       });
 
@@ -545,6 +525,8 @@ var hookedElements = (function (exports) {
   exports.useRef = useRef;
   exports.useState = useState;
   exports.whenDefined = whenDefined;
+
+  
 
   return exports;
 
