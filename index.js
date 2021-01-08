@@ -526,8 +526,6 @@ var hookedElements = (function (exports) {
   exports.useState = useState;
   exports.whenDefined = whenDefined;
 
-  
-
   return exports;
 
 }({}));

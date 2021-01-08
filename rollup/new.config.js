@@ -17,6 +17,7 @@ export default {
   ],
   
   output: {
+    esModule: false,
     exports: 'named',
     file: './new.js',
     format: 'iife',

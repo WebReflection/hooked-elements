@@ -7,7 +7,7 @@
     "build": "npm run cjs && npm run rollup:new && npm run rollup:babel && npm run min && npm run size && npm run test",
     "cjs": "ascjs esm cjs",
     "rollup:new": "rollup --config rollup/new.config.js",
-    "rollup:babel": "rollup --config rollup/babel.config.js && sed -i 's/Object.defineProperty.*//' index.js",
+    "rollup:babel": "rollup --config rollup/babel.config.js",
     "min": "terser index.js --comments=/^!/ -c -m -o min.js",
     "size": "cat min.js | gzip -9 | wc -c && cat min.js | brotli | wc -c && cat new.js | gzip -9 | wc -c && cat new.js | brotli | wc -c",
     "test": "echo \"$(tput smso)$(tput bold) Please check the test folder $(tput sgr0)\" && http-server ."
