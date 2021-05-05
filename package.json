@@ -1,6 +1,6 @@
 {
   "name": "hooked-elements",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "description": "wickedElements 🧙 with render hooks",
   "main": "./cjs/index.js",
   "scripts": {
