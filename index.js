@@ -221,30 +221,77 @@ var hookedElements = (function (exports) {
     return s[info.i++];
   };
 
+  var TRUE = true,
+      FALSE = false;
+  var QSA$1 = 'querySelectorAll';
+
+  function add(node) {
+    this.observe(node, {
+      subtree: TRUE,
+      childList: TRUE
+    });
+  }
+  /**
+   * Start observing a generic document or root element.
+   * @param {Function} callback triggered per each dis/connected node
+   * @param {Element?} root by default, the global document to observe
+   * @param {Function?} MO by default, the global MutationObserver
+   * @returns {MutationObserver}
+   */
+
+
+  var notify = function notify(callback, root, MO) {
+    var loop = function loop(nodes, added, removed, connected, pass) {
+      for (var i = 0, length = nodes.length; i < length; i++) {
+        var node = nodes[i];
+
+        if (pass || QSA$1 in node) {
+          if (connected) {
+            if (!added.has(node)) {
+              added.add(node);
+              removed["delete"](node);
+              callback(node, connected);
+            }
+          } else if (!removed.has(node)) {
+            removed.add(node);
+            added["delete"](node);
+            callback(node, connected);
+          }
+
+          if (!pass) loop(node[QSA$1]('*'), added, removed, connected, TRUE);
+        }
+      }
+    };
+
+    var observer = new (MO || MutationObserver)(function (records) {
+      for (var added = new Set(), removed = new Set(), i = 0, length = records.length; i < length; i++) {
+        var _records$i = records[i],
+            addedNodes = _records$i.addedNodes,
+            removedNodes = _records$i.removedNodes;
+        loop(removedNodes, added, removed, FALSE, FALSE);
+        loop(addedNodes, added, removed, TRUE, FALSE);
+      }
+    });
+    observer.add = add;
+    observer.add(root || document);
+    return observer;
+  };
+
+  var QSA = 'querySelectorAll';
   var _self = self,
       document$1 = _self.document,
+      Element = _self.Element,
       MutationObserver$1 = _self.MutationObserver,
       Set$1 = _self.Set,
       WeakMap$1 = _self.WeakMap;
 
   var elements = function elements(element) {
-    return 'querySelectorAll' in element;
+    return QSA in element;
   };
 
   var filter = [].filter;
   var QSAO = (function (options) {
     var live = new WeakMap$1();
-
-    var callback = function callback(records) {
-      var query = options.query;
-
-      if (query.length) {
-        for (var i = 0, length = records.length; i < length; i++) {
-          loop(filter.call(records[i].addedNodes, elements), true, query);
-          loop(filter.call(records[i].removedNodes, elements), false, query);
-        }
-      }
-    };
 
     var drop = function drop(elements) {
       for (var i = 0, length = elements.length; i < length; i++) {
@@ -253,49 +300,11 @@ var hookedElements = (function (exports) {
     };
 
     var flush = function flush() {
-      callback(observer.takeRecords());
-    };
+      var records = observer.takeRecords();
 
-    var loop = function loop(elements, connected, query) {
-      var set = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : new Set$1();
-
-      var _loop = function _loop(_selectors, _element, i, length) {
-        // guard against repeated elements within nested querySelectorAll results
-        if (!set.has(_element = elements[i])) {
-          set.add(_element);
-
-          if (connected) {
-            for (var q, m = matches(_element), _i = 0, _length = query.length; _i < _length; _i++) {
-              if (m.call(_element, q = query[_i])) {
-                if (!live.has(_element)) live.set(_element, new Set$1());
-                _selectors = live.get(_element); // guard against selectors that were handled already
-
-                if (!_selectors.has(q)) {
-                  _selectors.add(q);
-
-                  options.handle(_element, connected, q);
-                }
-              }
-            }
-          } // guard against elements that never became live
-          else if (live.has(_element)) {
-              _selectors = live.get(_element);
-              live["delete"](_element);
-
-              _selectors.forEach(function (q) {
-                options.handle(_element, connected, q);
-              });
-            }
-
-          loop(querySelectorAll(_element), connected, query, set);
-        }
-
-        selectors = _selectors;
-        element = _element;
-      };
-
-      for (var selectors, element, i = 0, length = elements.length; i < length; i++) {
-        _loop(selectors, element, i);
+      for (var i = 0, length = records.length; i < length; i++) {
+        parse(filter.call(records[i].removedNodes, elements), false);
+        parse(filter.call(records[i].addedNodes, elements), true);
       }
     };
 
@@ -303,23 +312,48 @@ var hookedElements = (function (exports) {
       return element.matches || element.webkitMatchesSelector || element.msMatchesSelector;
     };
 
+    var notifier = function notifier(element, connected) {
+      var selectors;
+
+      if (connected) {
+        for (var q, m = matches(element), i = 0, length = query.length; i < length; i++) {
+          if (m.call(element, q = query[i])) {
+            if (!live.has(element)) live.set(element, new Set$1());
+            selectors = live.get(element);
+
+            if (!selectors.has(q)) {
+              selectors.add(q);
+              options.handle(element, connected, q);
+            }
+          }
+        }
+      } else if (live.has(element)) {
+        selectors = live.get(element);
+        live["delete"](element);
+        selectors.forEach(function (q) {
+          options.handle(element, connected, q);
+        });
+      }
+    };
+
     var parse = function parse(elements) {
       var connected = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
-      loop(elements, connected, options.query);
+
+      for (var i = 0, length = elements.length; i < length; i++) {
+        notifier(elements[i], connected);
+      }
     };
 
-    var querySelectorAll = function querySelectorAll(root) {
-      return query.length ? root.querySelectorAll(query) : query;
-    };
-
-    var observer = new MutationObserver$1(callback);
-    var root = options.root || document$1;
     var query = options.query;
-    observer.observe(root, {
-      childList: true,
-      subtree: true
-    });
-    parse(querySelectorAll(root));
+    var root = options.root || document$1;
+    var observer = notify(notifier, root, MutationObserver$1);
+    var attachShadow = Element.prototype.attachShadow;
+    if (attachShadow) Element.prototype.attachShadow = function (init) {
+      var shadowRoot = attachShadow.call(this, init);
+      observer.add(shadowRoot);
+      return shadowRoot;
+    };
+    if (query.length) parse(root[QSA](query));
     return {
       drop: drop,
       flush: flush,
@@ -398,7 +432,7 @@ var hookedElements = (function (exports) {
   var get = function get(selector) {
     return (config[selector] || attributes).o;
   };
-  var define = function define(selector, definition) {
+  var define$1 = function define(selector, definition) {
     if (-1 < query.indexOf(selector)) throw new Error('duplicated: ' + selector);
     flush();
     var listeners = [];
@@ -444,9 +478,9 @@ var hookedElements = (function (exports) {
     whenDefined(selector);
     if (!lazy.has(selector)) defined[selector]._();
   };
-  var defineAsync = function defineAsync(selector, callback, _) {
+  var defineAsync$1 = function defineAsync(selector, callback, _) {
     lazy.add(selector);
-    define(selector, {
+    define$1(selector, {
       init: function init() {
         if (lazy.has(selector)) {
           lazy["delete"](selector);
@@ -455,7 +489,7 @@ var hookedElements = (function (exports) {
             query.splice(query.indexOf(selector), 1);
             drop(document.querySelectorAll(selector));
 
-            (_ || define)(selector, definition);
+            (_ || define$1)(selector, definition);
           });
         }
       }
@@ -487,14 +521,14 @@ var hookedElements = (function (exports) {
     render(this);
   }
 
-  var define$1 = function define$1(selector, definition) {
-    define(selector, typeof definition === 'function' ? {
+  var define = function define(selector, definition) {
+    define$1(selector, typeof definition === 'function' ? {
       init: init,
       render: definition
     } : (definition.init || (definition.init = init), definition));
   };
-  var defineAsync$1 = function defineAsync$1(selector, callback) {
-    defineAsync(selector, callback, define$1);
+  var defineAsync = function defineAsync(selector, callback) {
+    defineAsync$1(selector, callback, define);
   };
   var render = function render(wicked) {
     var disconnected = wicked.disconnected,
@@ -511,8 +545,8 @@ var hookedElements = (function (exports) {
   };
 
   exports.createContext = createContext;
-  exports.define = define$1;
-  exports.defineAsync = defineAsync$1;
+  exports.define = define;
+  exports.defineAsync = defineAsync;
   exports.get = get;
   exports.render = render;
   exports.upgrade = upgrade;

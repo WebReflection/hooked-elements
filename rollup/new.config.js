@@ -9,7 +9,7 @@ export default {
       include: {
         '@ungap/element-matches': 'node_modules/@ungap/degap/element-matches.js',
         '@ungap/node-contains': 'node_modules/@ungap/degap/node-contains.js',
-        '@webreflection/lie': 'node_modules/uhooks/esm/promise.js'
+        '@webreflection/lie': 'node_modules/@ungap/degap/promise.js'
       },
     }),
     resolve({module: true}),
